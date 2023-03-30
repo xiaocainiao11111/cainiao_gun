@@ -1,4 +1,4 @@
 #include "BleCombo.h"
 
-BleComboKeyboard Keyboard;
-BleComboMouse Mouse(&Keyboard);
+// BleComboKeyboard Keyboard;
+// BleComboMouse Mouse(&Keyboard);

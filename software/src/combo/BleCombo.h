@@ -3,7 +3,7 @@
 #include "BleComboKeyboard.h"
 #include "BleComboMouse.h"
 
-extern BleComboMouse Mouse;
-extern BleComboKeyboard Keyboard;
+// extern BleComboMouse Mouse;
+// extern BleComboKeyboard Keyboard;
 
 #endif

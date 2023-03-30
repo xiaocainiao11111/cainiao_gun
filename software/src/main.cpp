@@ -1,6 +1,6 @@
 #include <Arduino.h>
-
 #include "combo/BleCombo.h"
+#include <Adafruit_NeoPixel.h>
 
 
 #include "I2Cdev.h"
@@ -10,10 +10,28 @@
     #include "Wire.h"
 #endif
 
-MPU6050 mpu;
+
 #define OUTPUT_READABLE_YAWPITCHROLL
 
-#define INTERRUPT_PIN 2  // use pin 2 on Arduino Uno & most boards
+#define INTERRUPT_PIN       2  // use pin 2 on Arduino Uno & most boards
+#define WS2812_PIN          19           //RGB选择引脚
+#define WS2812_NUM          4            //定义led个数，决定数组长度
+
+
+
+MPU6050 mpu;
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(WS2812_NUM, WS2812_PIN, NEO_GRB + NEO_KHZ800);
+BleComboKeyboard KeyBoard = BleComboKeyboard("cainiao_gun","Espressif",100);
+BleComboMouse Mouse(&KeyBoard);
+
+
+//RGB_api
+void colorWipe(uint32_t color, int wait);
+void theaterChase(uint32_t color, int wait);
+void rainbow(int wait);
+void theaterChaseRainbow(int wait);
+unsigned long _millis=0;
+int RGB_time=0;
 
 // MPU control/status vars
 bool dmpReady = false;  // set true if DMP init was successful
@@ -150,22 +168,22 @@ void encoder(){
     int x_value = analogRead(x),y_value = analogRead(y);
 
     if(x_value>3500){
-        if(cnt3){Keyboard.press(119);moveX=1;cnt3=0;}
+        if(cnt3){KeyBoard.press(119);moveX=1;cnt3=0;}
     }
     else if(x_value<500){
-        if(cnt3){Keyboard.press(115);moveX=-1;cnt3=0;}
+        if(cnt3){KeyBoard.press(115);moveX=-1;cnt3=0;}
     }
     else{
-        if(cnt3==0){Keyboard.release(119);Keyboard.release(115);cnt3=1;}
+        if(cnt3==0){KeyBoard.release(119);KeyBoard.release(115);cnt3=1;}
     }
-    if(y_value>3800){
-        if(cnt4){Keyboard.press(100);moveY=1;cnt4=0;}
+    if(y_value>3900){
+        if(cnt4){KeyBoard.press(100);moveY=1;cnt4=0;}
     }
     else if(y_value<500){
-        if(cnt4){Keyboard.press(97);moveY=-1;cnt4=0;}
+        if(cnt4){KeyBoard.press(97);moveY=-1;cnt4=0;}
     }
     else{
-        if(cnt4==0){Keyboard.release(100);Keyboard.release(97);cnt4=1;}
+        if(cnt4==0){KeyBoard.release(100);KeyBoard.release(97);cnt4=1;}
     }}
 
 
@@ -215,11 +233,86 @@ void _print(){
     );
 }
 
+//RGB功能实现
+// Some functions of our own for creating animated effects -----------------
+// Fill strip pixels one after another with a color. Strip is NOT cleared
+// first; anything there will be covered pixel by pixel. Pass in color
+// (as a single 'packed' 32-bit value, which you can get by calling
+// strip.Color(red, green, blue) as shown in the loop() function above),
+// and a delay time (in milliseconds) between pixels.
+void colorWipe(uint32_t color, int wait) {
+  for(int i=0; i<strip.numPixels(); i++) { // For each pixel in strip...
+    strip.setPixelColor(i, color);         //  Set pixel's color (in RAM)
+    strip.show();                          //  Update strip to match
+    delay(wait);                           //  Pause for a moment
+  }
+}
+
+// Theater-marquee-style chasing lights. Pass in a color (32-bit value,
+// a la strip.Color(r,g,b) as mentioned above), and a delay time (in ms)
+// between frames.
+void theaterChase(uint32_t color, int wait) {
+  for(int a=0; a<10; a++) {  // Repeat 10 times...
+    for(int b=0; b<3; b++) { //  'b' counts from 0 to 2...
+      strip.clear();         //   Set all pixels in RAM to 0 (off)
+      // 'c' counts up from 'b' to end of strip in steps of 3...
+      for(int c=b; c<strip.numPixels(); c += 3) {
+        strip.setPixelColor(c, color); // Set pixel 'c' to value 'color'
+      }
+      strip.show(); // Update strip with new contents
+      delay(wait);  // Pause for a moment
+    }
+  }
+}
+
+void rainbow(int wait) {
+  for(long firstPixelHue = 0; firstPixelHue < 5*65536; firstPixelHue += 256) {
+
+    strip.rainbow(firstPixelHue);
+    // Above line is equivalent to:
+    // strip.rainbow(firstPixelHue, 1, 255, 255, true);
+    strip.show(); // Update strip with new contents
+    delay(wait);  // Pause for a moment
+  }
+}
+
+// Rainbow-enhanced theater marquee. Pass delay time (in ms) between frames.
+void theaterChaseRainbow(int wait) {
+  if(millis()>_millis){
+  int firstPixelHue = 0;     // First pixel starts at red (hue 0)
+  for(int a=0; a<30; a++) {  // Repeat 30 times...
+    for(int b=0; b<3; b++) { //  'b' counts from 0 to 2...
+      strip.clear();         //   Set all pixels in RAM to 0 (off)
+      // 'c' counts up from 'b' to end of strip in increments of 3...
+      for(int c=b; c<strip.numPixels(); c += 3) {
+        // hue of pixel 'c' is offset by an amount to make one full
+        // revolution of the color wheel (range 65536) along the length
+        // of the strip (strip.numPixels() steps):
+        int      hue   = firstPixelHue + c * 65536L / strip.numPixels();
+        uint32_t color = strip.gamma32(strip.ColorHSV(hue)); // hue -> RGB
+        strip.setPixelColor(c, color); // Set pixel 'c' to value 'color'
+      }
+      strip.show();                // Update strip with new contents
+      // delay(wait); // Pause for a moment
+      firstPixelHue += 65536 / 90; // One cycle of color wheel over 90 frames
+      _millis=millis()+1000;
+    }
+  }
+  }
+}
+
+
+
+
+
 void setup() {
     Serial.begin(115200);
     Serial.println("Starting work!");
-    Keyboard.begin();
+    KeyBoard.begin();
     Mouse.begin();
+    strip.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)把对应pin设置为输出
+    strip.show();            // Turn OFF all pixels ASAP
+    strip.setBrightness(30); // Set BRIGHTNESS to about 1/5 (max = 255)，设置亮度
     pinMode(sw,INPUT_PULLUP);
     pinMode(5,INPUT_PULLDOWN);
     pinMode(18,INPUT_PULLDOWN);
@@ -300,13 +393,19 @@ void loop() {
     pattern_ctrl();
     pattern();
     mpu_DMP();
-    mouse_Move();
-    mouse_Right();
-    mouse_Left();
-    encoder();
+    // mouse_Move();
+    // mouse_Right();
+    // mouse_Left();
+    // encoder();
     _print();
     moveX=0,moveY=0,mouseX=0,mouseY=0,IO5=0,IO18=0,IO16=0,IO17=0;
     delay(1);
+    if(RGB_time==1){colorWipe(strip.Color(255,   0,   0), 0);}//Red
+    if(RGB_time==100){colorWipe(strip.Color(  0, 255,   0), 0);}// Green
+    if(RGB_time==200){colorWipe(strip.Color(  0,   0, 255), 0);}// Blue
+    if(RGB_time==300){RGB_time=0;}
+    RGB_time++;
+
 
   //摇杆：已验证
 //   int x_value = analogRead(x);
