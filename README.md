@@ -1,9 +1,9 @@
-# ele_gun
+# cainiao_gun
 >传统FPS（✗）
 
 >电子FPS（✓）
 
-自制esp32体感手柄，赛博FPS打枪神器，取名ele_gun。
+自制esp32体感手柄，赛博FPS打枪神器，取cainaio_gun。
 
 ## 文件夹介绍
 - examples：开发过程中的例程，最喜欢的一环。
