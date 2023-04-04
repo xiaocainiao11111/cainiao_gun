@@ -3,10 +3,15 @@
 
 >电子FPS（✓）
 
-自制esp32体感手柄，赛博FPS打枪神器，取名cainaio_gun。
+主控：esp32-woroom-32E
+
+平台：vscode-platformio
+
+
+自制体感手柄，赛博FPS打枪神器，取名cainiao_gun。
 
 ## 文件夹介绍
-- examples：开发过程中的例程，最喜欢的一环。
+- examples：开发过程中的例程，大部分已验证。
 
 - software：源码，能用，但屎山。
 
@@ -42,7 +47,7 @@
 
 ### **2023/3/24**
 
-- 新增例程全验证
+- 新增例程
 
 ## 后续更新
 
@@ -58,7 +63,7 @@
 
 - freertos（彻底解决delay与ble速率的矛盾）
 
-- oop（开放api，有手就能开发）
+- oop
 
 - pcb
 

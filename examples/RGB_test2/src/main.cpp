@@ -1,6 +1,22 @@
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
 
+/*函数注释
+  void begin(void);//把对应pin设置为输出
+  void show(void);//运用数据
+  void setPin(int16_t p);//设置或改变输出pin
+  void setPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b);//单独设置某一灯珠的数据，n:灯号，r，g，b
+  void setPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b, uint8_t w);//w:亮度
+  void setPixelColor(uint16_t n, uint32_t c);//c:32位颜色值
+  void fill(uint32_t c = 0, uint16_t first = 0, uint16_t count = 0);//颜色填充
+  void setBrightness(uint8_t);//设置亮度
+  void clear(void);//关闭所有灯
+  void updateLength(uint16_t n);//改变长度
+  void updateType(neoPixelType t);//改变像素模式，比如下面的NEO_GRB + NEO_KHZ800，建议跟clear使用
+
+  //至于更高级的效果基本都是根据这些函数手撸的，更多可参考例程
+*/
+
 #define WS2812_PIN          19           //定义选择引脚
 #define WS2812_NUM          4            //定义led个数，决定数组长度
 
@@ -13,7 +29,40 @@ void theaterChaseRainbow(int wait);
 
 
 unsigned long aaa=0;
+int r1,r2,r3;
+int _millis;
+int RGB_time=0;
 
+void mode1(){
+  if(RGB_time==1){
+    strip.clear();
+    strip.setPixelColor(1, 100, 255, 100);
+    strip.show();
+  }
+  if(RGB_time==100){
+    strip.clear();
+    strip.setPixelColor(2, 100, 255, 100);
+    strip.show();
+  }
+  else if(RGB_time==200){
+    strip.clear();
+    strip.setPixelColor(3, 100, 255, 100);
+    strip.show();
+  }
+  else if(RGB_time==300){
+    strip.clear();
+    RGB_time=0;
+  }
+}
+
+void RGB_mode(bool mode){
+  if(mode){
+
+  }
+  else{
+
+  }
+}
 
 void setup() {
   Serial.begin(115200);
@@ -25,6 +74,12 @@ void setup() {
 
 
 void loop() {
+  r1=random(255);
+  r2=random(255);
+  r3=random(255);
+  RGB_time++;
+  mode1();
+  delay(5);
 
   // Fill along the length of the strip in various colors...
   // colorWipe(strip.Color(255,   0,   0), 50); // Red
@@ -37,7 +92,15 @@ void loop() {
   // theaterChase(strip.Color(  0,   0, 127), 50); // Blue, half brightness
 
   // rainbow(0);             // Flowing rainbow cycle along the whole strip
-  theaterChaseRainbow(50); // Rainbow-enhanced theaterChase variant
+  // theaterChaseRainbow(50); // Rainbow-enhanced theaterChase variant
+
+  // Serial.println(r1);
+  // delay(100);
+  // Serial.println(r2);
+  // delay(100);
+  // Serial.println(r3);
+  // delay(100);
+
 }
 
 
