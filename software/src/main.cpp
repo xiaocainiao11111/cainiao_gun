@@ -13,9 +13,10 @@
 
 #define OUTPUT_READABLE_YAWPITCHROLL
 
-#define INTERRUPT_PIN       2  // use pin 2 on Arduino Uno & most boards
+#define INTERRUPT_PIN       34  // use pin 2 on Arduino Uno & most boards
+
 #define WS2812_PIN          19           //RGB选择引脚
-#define WS2812_NUM          4            //定义led个数，决定数组长度
+#define WS2812_NUM          3            //定义led个数，决定数组长度
 
 
 
@@ -32,6 +33,10 @@ void rainbow(int wait);
 void theaterChaseRainbow(int wait);
 unsigned long _millis=0;
 int RGB_time=0;
+//RGB随机数
+int R;
+int G;
+int B;
 
 // MPU control/status vars
 bool dmpReady = false;  // set true if DMP init was successful
@@ -62,14 +67,42 @@ void dmpDataReady() {
 }
 
 
-
+//IO定义
 const int x = 0;
 const int y = 4;
-const int sw = 23;
+const int Key_sw = 23;
+const int Key_1 = 12;
+const int Key_2 = 32;
+const int Key_3 = 33;
+const int Key_4 = 35;
+const int Key_5 = 17;
+const int Key_6 = 16;
+const int Key_7 = 18;
+const int Key_8 = 5;
+
+//键码定义
+/*
+16//shift
+119//w
+97//a
+100//d
+115//s
+87//shift+w
+83//shift+s
+68//shift+d
+65//shift+a
+32//space
+114//r
+102//f
+*/
+
+
+int num1 = 0;//电磁后坐计数
+int num2 = 0;//RGB计数
 
 uint8_t moveX=0,moveY=0,IO5=0,IO18=0,IO16=0,IO17=0,pat=0;
 int8_t mouseX=0,mouseY=0;
-uint8_t cnt1=1,cnt2=1,cnt3=1,cnt4=1;
+uint8_t cnt1=1,cnt2=1,num_sw=1,num_key1=1,num_key2=1,num_key3=1,num_en1=1,num_en2=1;
 
 //触摸消抖
 static bool T32()
@@ -125,9 +158,9 @@ void mpu_DMP(){
             mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
             mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
             // Serial.print("ypr\t");
-            // Serial.print(ypr[0] * 180/M_PI/15);
+            // Serial.print(ypr[0] * 180/M_PI);
             // Serial.print("\t");
-            // Serial.print(ypr[1] * 180/M_PI/15);
+            // Serial.print(ypr[1] * 180/M_PI);
             // Serial.print("\t");
             // Serial.println(ypr[2] * 180/M_PI);
 
@@ -137,7 +170,7 @@ void mpu_DMP(){
             // Serial.print(ypr[2] * 180/M_PI);
             // Serial.print("\t");
             // Serial.println(gz/150);
-            // delay(100);
+            delay(100);
 
             // mouseX=-gz/150;
             // mouseY=-gy/150;
@@ -149,7 +182,7 @@ void mpu_DMP(){
 
 //模式切换
 void pattern_ctrl(){
-    if(digitalRead(5)){pat=1;}
+    if(digitalRead(Key_8)){pat=1;}
     else{pat=0;}
 }
 
@@ -163,27 +196,78 @@ void pattern(){
     else{mouseX=-gz/150;mouseY=-gy/150;}
 }
 
+//电磁后坐
+void houzuo(){
+    if(num1==80){
+        digitalWrite(25, HIGH);
+        // Serial.println(111);
+    }
+    if(num1==120){
+        digitalWrite(25, LOW);
+        num1=0;
+    }
+    num1++;
+}
+
+//RGB
+void RGB(){
+    //RGB随机数
+    R=random(255);
+    G=random(255);
+    B=random(255);
+    if(num2==80){
+        strip.setPixelColor(0, R, G, B);
+        strip.setPixelColor(1, B, R, G);
+        strip.setPixelColor(2, G, B, R);
+        strip.show();
+    }
+    if(num2==120){
+        strip.clear();//关闭所有灯
+        strip.show();
+        num2=0;
+    }
+    num2++;
+}
+
+
+//键码定义
+/*
+16//shift
+119//w
+97//a
+100//d
+115//s
+87//shift+w
+83//shift+s
+68//shift+d
+65//shift+a
+32//space
+114//r
+102//f
+*/
+
+
 //摇杆移动
 void encoder(){
     int x_value = analogRead(x),y_value = analogRead(y);
 
     if(x_value>3500){
-        if(cnt3){KeyBoard.press(119);moveX=1;cnt3=0;}
+        if(num_en1){KeyBoard.press(16);KeyBoard.press(119);moveX=1;num_en1=0;}
     }
     else if(x_value<500){
-        if(cnt3){KeyBoard.press(115);moveX=-1;cnt3=0;}
+        if(num_en1){KeyBoard.press(16);KeyBoard.press(115);moveX=-1;num_en1=0;}
     }
     else{
-        if(cnt3==0){KeyBoard.release(119);KeyBoard.release(115);cnt3=1;}
+        if(num_en1==0){KeyBoard.release(87);KeyBoard.release(83);KeyBoard.press(16);num_en1=1;}
     }
     if(y_value>3900){
-        if(cnt4){KeyBoard.press(100);moveY=1;cnt4=0;}
+        if(num_en2){KeyBoard.press(16);KeyBoard.press(100);moveY=1;num_en2=0;}
     }
     else if(y_value<500){
-        if(cnt4){KeyBoard.press(97);moveY=-1;cnt4=0;}
+        if(num_en2){KeyBoard.press(16);KeyBoard.press(97);moveY=-1;num_en2=0;}
     }
     else{
-        if(cnt4==0){KeyBoard.release(100);KeyBoard.release(97);cnt4=1;}
+        if(num_en2==0){KeyBoard.release(68);KeyBoard.release(65);KeyBoard.press(16);num_en2=1;}
     }}
 
 
@@ -197,41 +281,96 @@ void mouse_Move(){
 //   }
 }
 
+//鼠标中键
+void key_sw(){
+    if(digitalRead(Key_sw)==0){
+        if(num_sw){Mouse.press(MOUSE_MIDDLE);num_sw=0;}
+    }
+    else{
+        if(num_sw==0){Mouse.release(MOUSE_MIDDLE);num_sw=1;}
+    }
+}
+
+//鼠标左键
+void mouse_Left(){
+    if(digitalRead(Key_5)){
+        if(cnt2){Mouse.press(MOUSE_LEFT);cnt2=0;}
+        houzuo();
+        RGB();
+    }
+    else{
+        if(cnt2==0){Mouse.release(MOUSE_LEFT);cnt2=1;}
+    }
+
+}
+
 //鼠标右键
 void mouse_Right(){
-    if(digitalRead(16)){
-        if(cnt1){Mouse.press(MOUSE_RIGHT);cnt1=0;Serial.println("111111111111111");}
+    if(digitalRead(Key_6)){
+        if(cnt1){Mouse.press(MOUSE_RIGHT);cnt1=0;}
     }
     else{
         if(cnt1==0){Mouse.release(MOUSE_RIGHT);cnt1=1;}
     }
 }
 
-//鼠标左键
-void mouse_Left(){
-    if(digitalRead(17)){
-        if(cnt2){Mouse.press(MOUSE_LEFT);cnt2=0;}
+void key_1(){
+    if(digitalRead(Key_1)){
+        if(num_key1){Mouse.press(32);num_key1=0;}
+
     }
     else{
-        if(cnt2==0){Mouse.release(MOUSE_LEFT);cnt2=1;}
+        if(num_key1==0){Mouse.release(32);num_key1=1;}
     }
+
+}
+
+void key_2(){
+    if(digitalRead(Key_2)){
+        if(num_key2){Mouse.press(114);num_key2=0;}
+
+    }
+    else{
+        if(num_key2==0){Mouse.release(114);num_key2=1;}
+    }
+
+}
+
+void key_3(){
+    if(digitalRead(Key_3)){
+        if(num_key3){Mouse.press(102);num_key3=0;}
+
+    }
+    else{
+        if(num_key3==0){Mouse.release(102);num_key3=1;}
+    }
+
 }
 
 
 //参数打印
 void _print(){
     Serial.println(
-        "moveX:"+String(moveX)+
-        "  moveY:"+String(moveY)+
-        "  mouseX:"+String(mouseX)+
-        "  mouseY:"+String(mouseY)+
-        "  IO5:"+String(digitalRead(5))+
-        "  IO18:"+String(digitalRead(18))+
-        "  IO16:"+String(digitalRead(16))+
-        "  IO17:"+String(digitalRead(17))+
-        "  pat:"+String(pat)
+        // "moveX:"+String(moveX)+
+        // "  moveY:"+String(moveY)+
+        // "  mouseX:"+String(mouseX)+
+        // "  mouseY:"+String(mouseY)+
+        "  1:"+String(digitalRead(12))+
+        "  2:"+String(digitalRead(32))+
+        "  3:"+String(digitalRead(33))+
+        "  4:"+String(digitalRead(35))+
+        "  5:"+String(digitalRead(17))+
+        "  6:"+String(digitalRead(16))+
+        "  7:"+String(digitalRead(18))+
+        "  8:"+String(digitalRead(5))+
+        "  sw:"+String(digitalRead(Key_sw))
+        // "  pat:"+String(pat)
     );
 }
+
+
+
+
 
 //RGB功能实现
 // Some functions of our own for creating animated effects -----------------
@@ -298,12 +437,8 @@ void theaterChaseRainbow(int wait) {
       _millis=millis()+1000;
     }
   }
-  }
 }
-
-
-
-
+}
 
 void setup() {
     Serial.begin(115200);
@@ -312,12 +447,20 @@ void setup() {
     Mouse.begin();
     strip.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)把对应pin设置为输出
     strip.show();            // Turn OFF all pixels ASAP
-    strip.setBrightness(30); // Set BRIGHTNESS to about 1/5 (max = 255)，设置亮度
-    pinMode(sw,INPUT_PULLUP);
-    pinMode(5,INPUT_PULLDOWN);
-    pinMode(18,INPUT_PULLDOWN);
-    pinMode(16,INPUT_PULLDOWN);
+    strip.setBrightness(100); // Set BRIGHTNESS to about 1/5 (max = 255)，设置亮度
+    pinMode(Key_sw,INPUT_PULLUP);
+    pinMode(12,INPUT_PULLDOWN);
+    pinMode(32,INPUT_PULLDOWN);
+    pinMode(33,INPUT_PULLDOWN);
+    pinMode(35,INPUT_PULLDOWN);
     pinMode(17,INPUT_PULLDOWN);
+    pinMode(16,INPUT_PULLDOWN);
+    pinMode(18,INPUT_PULLDOWN);
+    pinMode(5,INPUT_PULLDOWN);
+
+    pinMode(25,OUTPUT);//电磁后坐
+
+
 
     #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
         Wire.begin();
@@ -390,21 +533,30 @@ void setup() {
 }
 
 void loop() {
-    pattern_ctrl();
-    pattern();
-    mpu_DMP();
+    //RGB随机数
+    int R=random(255);
+    int G=random(255);
+    int B=random(255);
+
+    // pattern_ctrl();
+    // pattern();
+    // mpu_DMP();
     // mouse_Move();
-    // mouse_Right();
-    // mouse_Left();
-    // encoder();
+    mouse_Right();
+    mouse_Left();
+    encoder();
+    key_sw();
+    key_1();
+    key_2();
+    key_3();
     _print();
     moveX=0,moveY=0,mouseX=0,mouseY=0,IO5=0,IO18=0,IO16=0,IO17=0;
     delay(1);
-    if(RGB_time==1){colorWipe(strip.Color(255,   0,   0), 0);}//Red
-    if(RGB_time==100){colorWipe(strip.Color(  0, 255,   0), 0);}// Green
-    if(RGB_time==200){colorWipe(strip.Color(  0,   0, 255), 0);}// Blue
-    if(RGB_time==300){RGB_time=0;}
-    RGB_time++;
+    // if(RGB_time==1){colorWipe(strip.Color(255,   0,   0), 0);}//Red
+    // if(RGB_time==100){colorWipe(strip.Color(  0, 255,   0), 0);}// Green
+    // if(RGB_time==200){colorWipe(strip.Color(  0,   0, 255), 0);}// Blue
+    // if(RGB_time==300){RGB_time=0;}
+    // RGB_time++;
 
 
   //摇杆：已验证
@@ -523,3 +675,5 @@ void loop() {
   // Serial.println("Waiting 2 seconds...");
   // delay(2000);
 }
+
+
